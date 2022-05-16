@@ -44,7 +44,6 @@
 	   (not (zerop (% year 100))))
       (zerop (% year 400))))
 
-;;;###autoload
 (defun df-compare-dates (y1 m1 d1 y2 m2 d2)
   "Compares Y1 M1 D1 and Y2 M2 D2 and return their relative location."
   (cond ((< y1 y2) -1)
@@ -193,79 +192,104 @@ WEEKDAY is optional and expedites the calculation."
             (throw 'is-hd 1)))
       nil)))
 
-(defun df-prior-day (y m d)
-  "Return a list with date prior to Y M D."
-  (if (= d 1)
-      (cond ((= m 1)
-             (list (- y 1) 12 31))
-            ((= m 3)
-             (if (df-is-leap-year y)
-                 (list y 2 29)
-               (list y 2 28)))
-            ((or (= m 2) (= m 4) (= m 6) (= m 8) (= m 9) (= m 11))
-             (list y (- m 1) 31))
-            (t
-             (list y (- m 1) 30)))
-    (list y m (- d 1))))
+(defun df-prior-weekday (n)
+  "Return the prior day of the week from N or nil."
+  (when n
+    (if (= n 0)
+        6
+      (- n 1))))
 
-(defun df-next-day (y m d)
-  "Return a list with date next to Y M D."
-  (cond ((= d 31)
-         (if (= m 12)
-             (list (+ y 1) 1 1)
-           (list y (+ m 1) 1)))
-        ((and (= d 30) (or (= m 4) (= m 6) (= m 9) (= m 10)))
-         (list y (+ m 1) 1))
-        ((and (= m 2) (or (= d 29) (and (= d 28) (not (df-is-leap-year y)))))
-         (list y 3 1))
+(defun df-next-weekday (n)
+  "Return the next day of the week from N or nil."
+  (when n
+    (if (= n 6)
+        0
+      (+ n 1))))
+
+(defun df-prior-day (y m d &optional weekday)
+  "Return the date before Y M D. If provided, move the WEEKDAY too."
+  (let ((wd (df-prior-weekday weekday)))
+    (if (= d 1)
+        (cond ((= m 1)
+               (list (- y 1) 12 31 wd))
+              ((= m 3)
+               (if (df-is-leap-year y)
+                   (list y 2 29 wd)
+                 (list y 2 28 wd)))
+              ((or (= m 2) (= m 4) (= m 6) (= m 8) (= m 9) (= m 11))
+               (list y (- m 1) 31 wd))
+              (t
+               (list y (- m 1) 30 wd)))
+      (list y m (- d 1) wd))))
+
+(defun df-next-day (y m d &optional weekday)
+  "Return the date after Y M D. If provided, move the WEEKDAY too."
+  (let ((wd (df-next-weekday weekday)))
+    (cond ((= d 31)
+           (if (= m 12)
+               (list (+ y 1) 1 1 wd)
+             (list y (+ m 1) 1 wd)))
+          ((and (= d 30) (or (= m 4) (= m 6) (= m 9) (= m 10)))
+           (list y (+ m 1) 1 wd))
+          ((and (= m 2) (or (= d 29) (and (= d 28) (not (df-is-leap-year y)))))
+           (list y 3 1 wd))
         (t
-         (list y m (+ d 1)))))
+         (list y m (+ d 1) wd)))))
 
-;;;###autoload
-(defun df-move-day (y m d n)
-  "Return date N days away from Y M D."
+(defun df-move-work-day (y m d n &optional holidays wdstart)
+  "Return date N work days from Y M D based on a list of HOLIDAYS.
+If WDSTART is true, start the count from nearest business day. By
+default, use U.S. federal holidays."
   (let* ((mover (if (> n 0) #'df-next-day #'df-prior-day))
-         (N (abs n))
          (i 0)
-         (dt (list y m d)))
+         (wd (df-day-of-week y m d))
+         (dt (list y m d wd))
+         (N (if (and wdstart (df-is-holiday y m d holidays wd)) (+ (abs n) 1) (abs n))))
     (while (< i N)
-      (setq i (+ i 1))
-      (setq dt (funcall mover (nth 0 dt) (nth 1 dt) (nth 2 dt))))
-    dt))
-
-;;;###autoload
-(defun df-move-work-day (y m d n &optional holidays)
-  "Return date N work days away from Y M D based on HOLIDAYS."
-  (let* ((mover (if (> n 0) #'df-next-day #'df-prior-day))
-         (N (abs n))
-         (i 0)
-         (dt (list y m d)))
-    (while (< i N)
-      (setq dt (funcall mover (nth 0 dt) (nth 1 dt) (nth 2 dt)))
-      (unless (df-is-holiday (nth 0 dt) (nth 1 dt) (nth 2 dt) holidays)
+      (setq dt (funcall mover (nth 0 dt) (nth 1 dt) (nth 2 dt) (nth 3 dt)))
+      (unless (df-is-holiday (nth 0 dt) (nth 1 dt) (nth 2 dt) holidays (nth 3 dt))
         (setq i (+ i 1))))
     dt))
 
+;; Calendar-mode passes around these dynamically bound variables, "which
+;; unfortunately have rather common names. They are meant to be available for
+;; external functions, so the names can't be changed." The result is that the
+;; compiler will complain about this. I don't know how to fix this.
+(defvar date)
+(defvar entry)
+
 ;;;###autoload
-(defun df-is-start-work-week (y m d &optional holidays)
-  "Return non-nil if Y M D is first work day of week based on HOLIDAYS."
-  (let* ((wd (df-day-of-week y m d)))
-    (cond ((df-is-holiday y m d holidays wd)
+(defun diary-expirations (anchor n &optional holidays wdstart mark)
+  "Add date to diary N business days from the ANCHOR calendar day.
+Use a optional HOLIDAYS calendar or the default federal calendar
+from the United States. If WDSTART is true, move to a work day
+before doing the offset. The MARK sets the face for the
+calendar."
+  (let* ((y1 (calendar-extract-year date))
+         (m1 (calendar-extract-month date))
+         (d1 (calendar-extract-day date)))
+    (let ((dt (df-move-work-day y1 m1 anchor n holidays wdstart)))
+      (if (= d1 (nth 2 dt))
+          (cons mark entry)))))
+
+;;;###autoload
+(defun diary-work-week-start (&optional holidays mark)
+  "Add start of work week to the calendar.
+Use the HOLIDAYS calendar or the default federal calendar. Use
+the MARK face for the calendar."
+  (let* ((y1 (calendar-extract-year date))
+         (m1 (calendar-extract-month date))
+         (d1 (calendar-extract-day date))
+         (wd (df-day-of-week y1 m1 d1)))
+    (cond ((df-is-holiday y1 m1 d1 holidays wd)
            nil)
           ((= wd df-monday)
-           t)
+           (cons mark entry))
           (t
-           (let* ((dt (df-move-work-day y m d -1 holidays))
+           (let* ((dt (df-move-work-day y1 m1 d1 -1 holidays))
                   (pr (df-day-of-week (nth 0 dt) (nth 1 dt) (nth 2 dt))))
-            (<= wd pr))))))
-
-(defun df-is-last-work-day (y m d n &optional holidays)
-  "Return non-nil if Y M D is the last N day given the HOLIDAYS."
-  (let* ((N (* (abs n) -1))
-         (dt (if (= m 12)
-                (df-move-work-day (+ y 1) 1 1 N holidays)
-              (df-move-work-day y (+ m 1) 1 N holidays))))
-    (= d (nth 2 dt))))
+             (if (<= wd pr)
+                 (cons mark entry)))))))
 
 (provide 'date-functions)
 ;;; date-functions.el ends here
