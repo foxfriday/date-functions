@@ -259,7 +259,7 @@ default, use U.S. federal holidays."
 (defvar entry)
 
 ;;;###autoload
-(defun diary-expirations (anchor n &optional holidays wdstart mark)
+(defun df-diary-expirations (anchor n &optional holidays wdstart mark)
   "Add date to diary N business days from the ANCHOR calendar day.
 Use a optional HOLIDAYS calendar or the default federal calendar
 from the United States. If WDSTART is true, move to a work day
@@ -273,7 +273,7 @@ calendar."
           (cons mark entry)))))
 
 ;;;###autoload
-(defun diary-work-week-start (&optional holidays mark)
+(defun df-diary-work-week-start (&optional holidays mark)
   "Add start of work week to the calendar.
 Use the HOLIDAYS calendar or the default federal calendar. Use
 the MARK face for the calendar."
