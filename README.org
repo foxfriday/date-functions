@@ -1,0 +1,23 @@
+* Date Functions
+
+This is a small library with some date utilities, mostly to determine if a given
+date is a holiday and things like that. The date functions are for the United
+States, but other holidays could be easily added. The library's main functions
+are intended to be used in your diary file like ~sexp entries~.
+
+#+begin_src emacs-lisp :tangle yes
+%%(diary-expirations 1 -1) Last work day of the month
+%%(diary-expirations 25 -1 df-globex-holidays) First work day before the 25
+%%(diary-expirations 25 -3 df-globex-holidays t personal-expiration-face) WTI Expiration
+#+end_src
+
+** Installation
+
+You can clone this repository and add it to your path. Or you can use Straight:
+
+#+begin_src emacs-lisp
+(straight-use-package '(date-functions :type git
+                                       :host github
+                                       :repo "foxfriday/date-functions"))
+(setq personal-expiration-face '(:foreground "red"))
+#+end_src
