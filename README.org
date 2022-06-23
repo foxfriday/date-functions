@@ -11,6 +11,13 @@ are intended to be used in your diary file like ~sexp entries~.
 %%(df-diary-expirations 25 -3 df-globex-holidays t personal-expiration-face) WTI Expiration
 #+end_src
 
+If you are using ~org-mode~, you can use the functions as follows:
+
+#+begin_src
+SCHEDULED: %%(df-diary-expirations 1 -1)
+#+end_src
+
+
 ** Installation
 
 You can clone this repository and add it to your path. Or you can use Straight:
