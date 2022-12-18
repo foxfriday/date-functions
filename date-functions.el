@@ -1,4 +1,10 @@
-;;; date-functions.el --- Some functions to work with dates.
+;;; date-functions.el --- Some functions to work with dates         -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2022 M. Rincón
+
+;; Author: M. Rincón
+;; Keywords: calendar dates
+;; Version: 0.0.1
 
 ;;; Commentary:
 ;; A collection of functions useful for working with dates.
