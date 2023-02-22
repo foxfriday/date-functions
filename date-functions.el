@@ -1,10 +1,10 @@
 ;;; date-functions.el --- Some functions to work with dates         -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022 M. Rincón
+;; Copyright (C) 2023 M. Rincón
 
 ;; Author: M. Rincón
 ;; Keywords: calendar dates
-;; Version: 0.0.1
+;; Version: 0.0.2
 
 ;;; Commentary:
 ;; A collection of functions useful for working with dates.
@@ -267,15 +267,19 @@ default, use U.S. federal holidays."
 ;;;###autoload
 (defun df-diary-expirations (anchor n &optional holidays wdstart mark)
   "Add date to diary N business days from the ANCHOR calendar day.
-Use a optional HOLIDAYS calendar or the default federal calendar
-from the United States. If WDSTART is true, move to a work day
-before doing the offset. The MARK sets the face for the
-calendar."
+If ANCHOR is zero, the N offset is done from the first day of the
+following month. Use a optional HOLIDAYS calendar or the default
+federal calendar from the United States. If WDSTART is true, move
+to the next work day before doing the offset. The MARK sets the
+face for the calendar."
   (let* ((y1 (calendar-extract-year date))
          (m1 (calendar-extract-month date))
-         (d1 (calendar-extract-day date)))
-    (let ((dt (df-move-work-day y1 m1 anchor n holidays wdstart)))
-      (if (= d1 (nth 2 dt))
+         (d1 (calendar-extract-day date))
+         (dd (if (< anchor 1) 1 anchor))
+         (mm (if (= anchor 0) (if (= m1 12) 1 (+ m1 1)) m1))
+         (yy (if (and (= anchor 0) (= m1 12)) (+ y1 1) y1)))
+    (let ((dt (df-move-work-day yy mm dd n holidays wdstart)))
+      (if (and (= d1 (nth 2 dt)) (= m1 (nth 1 dt)) (= y1 (nth 0 dt)))
           (cons mark entry)))))
 
 ;;;###autoload
