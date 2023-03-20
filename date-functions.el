@@ -58,11 +58,11 @@
         ((and (= y1 y2) (= m1 m2) (= d1 d2)) 0)
         (t 1)))
 
-(defun df-is-weekend (y m d wd)
+(defun df-is-weekend (_y _m _d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (or (= wd df-saturday) (= wd df-sunday)))
 
-(defun df-is-new-years (y m d wd)
+(defun df-is-new-years (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (or (and (= m 1) (or (= d 1) (and (= d 2) (= wd df-monday)))) (and (= d 31) (= m 12) (= wd df-friday))))
 
@@ -70,7 +70,7 @@
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 1) (>= d 15) (<= d 21) (= wd df-monday) (>= y 1983)))
 
-(defun df-is-presidents-day (y m d wd)
+(defun df-is-presidents-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 2) (>= d 15) (<= d 21) (= wd df-monday)))
 
@@ -86,7 +86,7 @@
                 (day (nth 2 gf)))
            (and (= month m) (= day d))))))
 
-(defun df-is-memorial-day (y m d wd)
+(defun df-is-memorial-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (>= d 25) (= wd df-monday) (= m 5)))
 
@@ -94,31 +94,31 @@
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 6) (or (= d 19) (and (= d 20) (= wd df-monday)) (and (= d 18) (= wd df-friday))) (> y 2021)))
 
-(defun df-is-independence-day (y m d wd)
+(defun df-is-independence-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 7) (or (= d 4) (and (= d 5) (= wd df-monday)) (and (= d 3) (= wd df-friday)))))
 
-(defun df-is-labor-day (y m d wd)
+(defun df-is-labor-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (<= d 7) (= wd df-monday) (= m 9)))
 
-(defun df-is-columbus-day (y m d wd)
+(defun df-is-columbus-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 10) (>= d 8) (<= d 14) (= wd df-monday)))
 
-(defun df-is-veterans-day (y m d wd)
+(defun df-is-veterans-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 11) (or (= d 11) (and (= d 12) (= wd df-monday)) (and (= d 10) (= wd df-friday)))))
 
-(defun df-is-thanksgiving-day (y m d wd)
+(defun df-is-thanksgiving-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 11) (>= d 22) (<= d 28) (= wd df-thursday)))
 
-(defun df-is-thanksgiving-friday (y m d wd)
+(defun df-is-thanksgiving-friday (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 11) (>= d 23) (<= d 29) (= wd df-friday)))
 
-(defun df-is-christmas-day (y m d wd)
+(defun df-is-christmas-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
   (and (= m 12) (or (= d 25) (and (= d 26) (= wd df-monday)) (and (= d 24) (= wd df-friday)))))
 
