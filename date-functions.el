@@ -4,7 +4,7 @@
 
 ;; Author: M. Rincón
 ;; Keywords: calendar dates
-;; Version: 0.0.2
+;; Version: 0.0.3
 
 ;;; Commentary:
 ;; A collection of functions useful for working with dates.
@@ -12,13 +12,29 @@
 ;;; Code:
 (require 'calendar)
 
-(defvar df-monday 1 "Value for Monday.")
-(defvar df-tuesday 2 "Value for Tuesday.")
-(defvar df-wednesday 3 "Value for Wednesday.")
-(defvar df-thursday 4 "Value for Thursday.")
-(defvar df-friday 5 "Value for Friday.")
-(defvar df-saturday 6 "Value for Saturday.")
-(defvar df-sunday 0 "Value for Sunday.")
+(defconst df-monday 1 "Value for Monday.")
+(defconst df-tuesday 2 "Value for Tuesday.")
+(defconst df-wednesday 3 "Value for Wednesday.")
+(defconst df-thursday 4 "Value for Thursday.")
+(defconst df-friday 5 "Value for Friday.")
+(defconst df-saturday 6 "Value for Saturday.")
+(defconst df-sunday 0 "Value for Sunday.")
+
+(defun df-get-year (dt)
+  "Return the year from DT."
+  (nth 0 dt))
+
+(defun df-get-month (dt)
+  "Return the month from DT."
+  (nth 1 dt))
+
+(defun df-get-day (dt)
+  "Return the day from DT."
+  (nth 2 dt))
+
+(defun df-get-weekday (dt)
+  "Return the weekday from DT."
+  (nth 3 dt))
 
 (defun df-good-friday (year)
   "Return Good Friday on YEAR."
@@ -81,10 +97,8 @@
         ((not (or (and (= m 3) (> d 19)) (and (= m 4) (< d 24))))
          nil)
         (t
-         (let* ((gf (df-good-friday y))
-                (month (nth 1 gf))
-                (day (nth 2 gf)))
-           (and (= month m) (= day d))))))
+         (let* ((gf (df-good-friday y)))
+           (and (= (df-get-month gf) m) (= (df-get-day gf) d))))))
 
 (defun df-is-memorial-day (_y m d wd)
   "Return non-nil if is named holiday on Y M D and weekday WD."
@@ -189,7 +203,7 @@
 
 (defun df-is-holiday (y m d &optional holidays weekday)
   "Return non-nil if Y M D is a holiday according optional HOLIDAYS.
-WEEKDAY is optional and expedites the calculation."
+WEEKDAY is optional but expedites the calculation."
   (let* ((hdl (if holidays holidays df-default-holidays))
          (wd (if weekday weekday (df-day-of-week y m d))))
     (catch 'is-hd
@@ -252,41 +266,114 @@ default, use U.S. federal holidays."
          (dt (list y m d wd))
          (N (if (and wdstart (df-is-holiday y m d holidays wd)) (+ (abs n) 1) (abs n))))
     (while (< i N)
-      (setq dt (funcall mover (nth 0 dt) (nth 1 dt) (nth 2 dt) (nth 3 dt)))
-      (unless (df-is-holiday (nth 0 dt) (nth 1 dt) (nth 2 dt) holidays (nth 3 dt))
+      (setq dt (funcall mover (df-get-year dt)
+                              (df-get-month dt)
+                              (df-get-day dt)
+                              (df-get-weekday dt)))
+      (unless (df-is-holiday (df-get-year dt)
+                             (df-get-month dt)
+                             (df-get-day dt)
+                             holidays
+                             (df-get-weekday dt))
         (setq i (+ i 1))))
     dt))
 
-;; Calendar-mode passes around these dynamically bound variables, "which
-;; unfortunately have rather common names. They are meant to be available for
-;; external functions, so the names can't be changed." The result is that the
-;; compiler will complain about this. I don't know how to fix this.
-(defvar date)
-(defvar entry)
+(defun df-equal-or-greater (dt0 dt1)
+  "Check if DT0 is greater or equal than DT1."
+  (let* ((y0 (df-get-year dt0))
+         (m0 (df-get-month dt0))
+         (d0 (df-get-day dt0))
+         (y1 (df-get-year dt1))
+         (m1 (df-get-month dt1))
+         (d1 (df-get-day dt1)))
+    (if (< y0 y1) nil
+      (if (> y0 y1) t
+        (if (< m0 m1) nil
+          (if (> m0 m1) t
+            (>= d0 d1)))))))
+
+(defun df-max-dt (dt0 dt1)
+  "Return the greater of two dates DT0 and DT1."
+  (if (df-equal-or-greater dt0 dt1) dt0 dt1))
+
+(defun df-min-dt (dt0 dt1)
+  "Return the lesser of two dates DT0 and DT1."
+  (if (df-equal-or-greater dt0 dt1) dt1 dt0))
+
+(defun df-in-between (dt dt0 dt1)
+  "Check if DT is in [DT0 and DT1]."
+  (and (df-equal-or-greater dt dt0) (df-equal-or-greater dt1 dt)))
+
+;; Calendar-mode passes around a dynamically bound `date` and `entry` variables, "which
+;; unfortunately have rather common names. They are meant to be available for external
+;; functions, so the names can't be changed." The result is that the compiler will
+;; complain about this. I don't know how to fix this.
 
 ;;;###autoload
 (defun df-diary-expirations (anchor n &optional holidays wdstart mark)
   "Add date to diary N business days from the ANCHOR calendar day.
 If ANCHOR is zero, the N offset is done from the first day of the
-following month. Use a optional HOLIDAYS calendar or the default
-federal calendar from the United States. If WDSTART is true, move
-to the next work day before doing the offset. The MARK sets the
-face for the calendar."
+following month. Never use an ANCHOR of zero, with a negative N.
+That will never evaluate to true. Instead, set the ANCHOR to 1.
+Use a optional HOLIDAYS calendar or the default federal calendar
+from the United States. If WDSTART is true, move to the next work
+day before doing the offset. The MARK sets the face for the
+calendar."
+  (with-suppressed-warnings ((lexical date)
+                             (lexical entry))
+    (defvar date)
+    (defvar entry))
   (let* ((y1 (calendar-extract-year date))
          (m1 (calendar-extract-month date))
          (d1 (calendar-extract-day date))
          (dd (if (< anchor 1) 1 anchor))
          (mm (if (= anchor 0) (if (= m1 12) 1 (+ m1 1)) m1))
-         (yy (if (and (= anchor 0) (= m1 12)) (+ y1 1) y1)))
-    (let ((dt (df-move-work-day yy mm dd n holidays wdstart)))
-      (if (and (= d1 (nth 2 dt)) (= m1 (nth 1 dt)) (= y1 (nth 0 dt)))
-          (cons mark entry)))))
+         (yy (if (and (= anchor 0) (= m1 12)) (+ y1 1) y1))
+         (dt (df-move-work-day yy mm dd n holidays wdstart)))
+    (if (and (= d1 (df-get-day dt)) (= m1 (df-get-month dt)) (= y1 (df-get-year dt)))
+        (cons mark entry))))
+
+;;;###autoload
+(defun df-diary-period (anchor n m &optional holidays wdstart mark)
+  "Add date to diary N to N+M business days from the ANCHOR date.
+If ANCHOR is zero, the N offset is done from the first day of the
+following month. Never use an ANCHOR of zero, with a negative N.
+That will never evaluate to true. Instead, set the ANCHOR to 1.
+Use a optional HOLIDAYS calendar or the default federal calendar
+from the United States. If WDSTART is true, move to the next work
+day before doing the offset. The MARK sets the face for the
+calendar."
+  (with-suppressed-warnings ((lexical date)
+                             (lexical entry))
+    (defvar date)
+    (defvar entry))
+  (let* ((y1 (calendar-extract-year date))
+         (m1 (calendar-extract-month date))
+         (d1 (calendar-extract-day date))
+         (dd (if (< anchor 1) 1 anchor))
+         (mm (if (= anchor 0) (if (= m1 12) 1 (+ m1 1)) m1))
+         (yy (if (and (= anchor 0) (= m1 12)) (+ y1 1) y1))
+         (dt0 (df-move-work-day yy mm dd n holidays wdstart))
+         (dt1 (df-move-work-day (df-get-year dt0)
+                                (df-get-month dt0)
+                                (df-get-day dt0)
+                                m
+                                holidays wdstart)))
+    (if (and (df-in-between (list y1 m1 d1)
+                            (df-min-dt dt0 dt1)
+                            (df-max-dt dt0 dt1))
+             (not (df-is-holiday y1 m1 d1 holidays)))
+        (cons mark entry))))
 
 ;;;###autoload
 (defun df-diary-work-week-start (&optional holidays mark)
   "Add start of work week to the calendar.
 Use the HOLIDAYS calendar or the default federal calendar. Use
 the MARK face for the calendar."
+  (with-suppressed-warnings ((lexical date)
+                             (lexical entry))
+    (defvar date)
+    (defvar entry))
   (let* ((y1 (calendar-extract-year date))
          (m1 (calendar-extract-month date))
          (d1 (calendar-extract-day date))
@@ -297,7 +384,7 @@ the MARK face for the calendar."
            (cons mark entry))
           (t
            (let* ((dt (df-move-work-day y1 m1 d1 -1 holidays))
-                  (pr (df-day-of-week (nth 0 dt) (nth 1 dt) (nth 2 dt))))
+                  (pr (df-day-of-week (df-get-year dt) (df-get-month dt) (df-get-day dt))))
              (if (<= wd pr)
                  (cons mark entry)))))))
 
