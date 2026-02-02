@@ -4,7 +4,7 @@
 
 ;; Author: M. Rincón
 ;; Keywords: calendar dates
-;; Version: 0.0.2
+;; Version: 0.0.3
 
 ;;; Commentary:
 ;; A collection of functions useful for working with dates.
@@ -278,6 +278,22 @@ face for the calendar."
          (dd (if (< anchor 1) 1 anchor))
          (mm (if (= anchor 0) (if (= m1 12) 1 (+ m1 1)) m1))
          (yy (if (and (= anchor 0) (= m1 12)) (+ y1 1) y1)))
+    (let ((dt (df-move-work-day yy mm dd n holidays wdstart)))
+      (if (and (= d1 (nth 2 dt)) (= m1 (nth 1 dt)) (= y1 (nth 0 dt)))
+          (cons mark entry)))))
+
+;;;###autoload
+(defun df-diary-from-month (month n &optional holidays wdstart mark)
+  "Add date to diary N business days from the start of the MONTH.
+Use a optional HOLIDAYS calendar or the default federal calendar from
+the United States. If WDSTART is true, move to the next work day before
+doing the offset. The MARK sets the face for the calendar."
+  (let* ((y1 (calendar-extract-year date))
+         (m1 (calendar-extract-month date))
+         (d1 (calendar-extract-day date))
+         (dd 1)
+         (mm month)
+         (yy y1))
     (let ((dt (df-move-work-day yy mm dd n holidays wdstart)))
       (if (and (= d1 (nth 2 dt)) (= m1 (nth 1 dt)) (= y1 (nth 0 dt)))
           (cons mark entry)))))
