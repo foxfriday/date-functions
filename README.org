@@ -6,7 +6,7 @@ States, but other holidays could be easily added. The library's main functions
 are intended to be used in your diary file like ~sexp entries~.
 
 #+begin_src emacs-lisp :tangle yes
-%%(df-diary-expirations 1 -1) Last work day of the month
+%%(df-diary-expirations 0 -1) Last work day of the month
 %%(df-diary-expirations 25 -1 df-globex-holidays) First work day before the 25
 %%(df-diary-expirations 25 -3 df-globex-holidays t personal-expiration-face) WTI Expiration
 #+end_src
@@ -14,7 +14,7 @@ are intended to be used in your diary file like ~sexp entries~.
 If you are using ~org-mode~, you can use the functions as follows:
 
 #+begin_src
-SCHEDULED: %%(df-diary-expirations 1 -1)
+SCHEDULED: %%(df-diary-expirations 0 -1)
 #+end_src
 
 
